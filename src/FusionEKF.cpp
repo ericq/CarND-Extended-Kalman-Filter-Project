@@ -37,6 +37,36 @@ FusionEKF::FusionEKF() {
     * Set the process and measurement noises
   */
 
+ 	//create a 4D state vector, we don't know yet the values of the x state
+  ekf_.x_ = VectorXd(4);
+
+	//state covariance matrix P
+  ekf_.P_ = MatrixXd(4, 4);
+  ekf_.P_ << 1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1000, 0,
+        0, 0, 0, 1000;  
+  
+  ekf_.R_ = R_laser_;
+  ekf_.H_ = H_laser_;
+
+  //measurement matrix
+	ekf_.H_ = MatrixXd(2, 4);
+	ekf_.H_ << 1, 0, 0, 0,
+			  0, 1, 0, 0;
+
+	//the initial transition matrix F_
+  ekf_.F_ = MatrixXd(4, 4);
+  ekf_.F_ << 1, 0, 1, 0,
+        0, 1, 0, 1,
+        0, 0, 1, 0,
+        0, 0, 0, 1;
+
+
+ 	//set the acceleration noise components
+	noise_ax = 5;
+	noise_ay = 5;
+
 
 }
 
@@ -47,11 +77,19 @@ FusionEKF::~FusionEKF() {}
 
 void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
+  /** debugging **/
+  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+    cout << "found radaor data. completely skip" <<endl;
+    return;
+  } 
+    
 
+  cout<< "entering ProcessMeasurement()... is_initialized_= " << is_initialized_ << endl;
   /*****************************************************************************
    *  Initialization
    ****************************************************************************/
   if (!is_initialized_) {
+    cout << "entring initialization" <<endl;
     /**
     TODO:
       * Initialize the state ekf_.x_ with the first measurement.
@@ -64,20 +102,40 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     ekf_.x_ << 1, 1, 1, 1;
 
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+      cout<<"received radar, skip"<<endl;
+
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
       */
+      /*
+      Radar data gives polar coordinates based system, it's not sufficient to determin 
+      velocity (vx, vy). but rho (range), phi (bearing) can be used to determin position (px, py)
+      */
+      // skip for now
+
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
+      cout<<"received laser"<<endl;
       /**
       Initialize state.
       */
+     	//set the state with the initial location and zero velocity
+		  ekf_.x_ << measurement_pack.raw_measurements_[0], measurement_pack.raw_measurements_[1], 0, 0;
+
+		  previous_timestamp_ = measurement_pack.timestamp_;
+
+      cout<< "x_ initialized per laser input:"<< ekf_.x_<<endl;
+  
     }
 
     // done initializing, no need to predict or update
     is_initialized_ = true;
+
+    cout << "leaving initialization" <<endl;
+
     return;
   }
+
 
   /*****************************************************************************
    *  Prediction
@@ -90,8 +148,31 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
      * Update the process noise covariance matrix.
      * Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
    */
+  cout << "compute elapsed time: " << endl;
+  //compute the time elapsed between the current and previous measurements
+	float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;	//dt - expressed in seconds
+	previous_timestamp_ = measurement_pack.timestamp_;
 
+  float dt_2 = dt * dt;
+  float dt_3 = dt_2 * dt;
+  float dt_4 = dt_3 * dt;
+
+	//Modify the F matrix so that the time is integrated
+	ekf_.F_(0, 2) = dt;
+	ekf_.F_(1, 3) = dt;
+
+	//set the process covariance matrix Q
+  ekf_.Q_ = MatrixXd(4, 4);
+  ekf_.Q_ <<  dt_4/4*noise_ax, 0, dt_3/2*noise_ax, 0,
+	            0, dt_4/4*noise_ay, 0, dt_3/2*noise_ay,
+	            dt_3/2*noise_ax, 0, dt_2*noise_ax, 0,
+	            0, dt_3/2*noise_ay, 0, dt_2*noise_ay;
+
+  cout << ekf_.Q_ << endl;
+
+  cout<<"before predict()"<<endl;
   ekf_.Predict();
+  cout<<"after predict()" <<endl;
 
   /*****************************************************************************
    *  Update
@@ -105,8 +186,15 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
     // Radar updates
+    // ekf_.UpdateEKF(measurement_pack.raw_measurements_);
+
   } else {
+    cout<<"before laster update"<<endl;
     // Laser updates
+    ekf_.Update(measurement_pack.raw_measurements_);
+    
+    cout<<"after laster update"<<endl;
+
   }
 
   // print the output
