@@ -19,7 +19,6 @@ FusionEKF::FusionEKF() {
   // initializing matrices
   R_laser_ = MatrixXd(2, 2);
   R_radar_ = MatrixXd(3, 3);
-  H_laser_ = MatrixXd(2, 4);
   Hj_ = MatrixXd(3, 4);
 
   //measurement covariance matrix - laser
@@ -47,8 +46,6 @@ FusionEKF::FusionEKF() {
         0, 0, 1000, 0,
         0, 0, 0, 1000;  
   
-  ekf_.R_ = R_laser_;
-  ekf_.H_ = H_laser_;
 
   //measurement matrix
 	ekf_.H_ = MatrixXd(2, 4);
@@ -81,14 +78,12 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
     cout << "found laser data:" <<endl;
     cout << measurement_pack.raw_measurements_ << endl;
-    //cout << "completely skip laser data here" <<endl;
-    //return;
   } 
   else {
     cout << "found radar data:" << endl;
     cout << measurement_pack.raw_measurements_ << endl;
-    cout << "completely skip radar data here" <<endl;
-    return;
+  //  cout << "completely skip radar data here" <<endl;
+  //  return;
 
   }
     
@@ -214,6 +209,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
     cout<<"before radar update"<<endl;
 
+    ekf_.R_ = R_radar_;
+
     // Radar updates
     ekf_.UpdateEKF(measurement_pack.raw_measurements_);
 
@@ -221,6 +218,9 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
   } else {
     cout<<"before laser update"<<endl;
+
+    ekf_.R_ = R_laser_;
+
     // Laser updates
     ekf_.Update(measurement_pack.raw_measurements_);
     

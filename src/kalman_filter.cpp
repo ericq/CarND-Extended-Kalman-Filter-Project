@@ -76,12 +76,11 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   
   MatrixXd Hj = tool.CalculateJacobian(x_);
 
+  // x_ reprents predicted state after the above Predict() invocation. 
+  // X_ contains px,py,vx,vy. Hj is a linearized approximity function 
+  // that converts the input from Cartesian to Polar (rho,phi,rho_dot)
+  // coordinates
   VectorXd z_pred = Hj * x_;
-
-  // convert z from Cartesian coordindates to Polar coordindates
-  //VectorXd h_z(3);
-  //h_z << CartesianToPolar(z_pred);
-
  	VectorXd y = z - z_pred;
  	MatrixXd Hjt = Hj.transpose();
  	MatrixXd S = Hj * P_ * Hjt + R_;
