@@ -64,6 +64,13 @@ public:
    */
   void UpdateEKF(const Eigen::VectorXd &z);
 
+  /**
+   * Convert from Cartesian coordinate to Polar
+   * @param cartesianInput in vector: px, py, vx, vy
+   * @return Polar coordinate in vector: rho, phi, rho_dot
+   */
+  Eigen::VectorXd CartesianToPolar(const Eigen::VectorXd &cartesianInput);
+
 };
 
 #endif /* KALMAN_FILTER_H_ */

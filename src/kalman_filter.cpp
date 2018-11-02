@@ -36,7 +36,10 @@ void KalmanFilter::Update(const VectorXd &z) {
   TODO:
     * update the state by using Kalman Filter equations
   */
- 	VectorXd z_pred = H_ * x_;
+  // x_ reprents predicted state after the above Predict() invocation. 
+  // X_ contains px,py,vx,vy. H vector muliplification is just a fancy way to 
+  // abandons vx,vy. thus z_pred only contains px, py
+ 	VectorXd z_pred = H_ * x_; 
  	VectorXd y = z - z_pred;
  	MatrixXd Ht = H_.transpose();
  	MatrixXd S = H_ * P_ * Ht + R_;
@@ -51,6 +54,18 @@ void KalmanFilter::Update(const VectorXd &z) {
  	P_ = (I - K * H_) * P_;
 }
 
+/**
+ *  input is a vector contains px, py, vx, vy
+ */
+VectorXd KalmanFilter::CartesianToPolar(const VectorXd &cartesianInput) {
+  VectorXd polarOutput (3);
+  double px = cartesianInput(0), py = cartesianInput(1), vx = cartesianInput(2), vy = cartesianInput(3);
+  
+  polarOutput << sqrt(px*px + py*py), atan(py/px), (px*vx+py*vy)/sqrt(px*px + py*py);
+
+  return polarOutput;
+}
+
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
   /**
   TODO:
@@ -58,9 +73,15 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   */
   // Jacobian Hj to repace H_, compared to the standard KF
   Tools tool;
-  MatrixXd Hj = tool.CalculateJacobian(z);
+  
+  MatrixXd Hj = tool.CalculateJacobian(x_);
 
   VectorXd z_pred = Hj * x_;
+
+  // convert z from Cartesian coordindates to Polar coordindates
+  //VectorXd h_z(3);
+  //h_z << CartesianToPolar(z_pred);
+
  	VectorXd y = z - z_pred;
  	MatrixXd Hjt = Hj.transpose();
  	MatrixXd S = Hj * P_ * Hjt + R_;

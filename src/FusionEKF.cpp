@@ -78,10 +78,19 @@ FusionEKF::~FusionEKF() {}
 void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
   /** debugging **/
-  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
-    cout << "found radaor data. completely skip" <<endl;
-    return;
+  if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
+    cout << "found laser data:" <<endl;
+    cout << measurement_pack.raw_measurements_ << endl;
+    //cout << "completely skip laser data here" <<endl;
+    //return;
   } 
+  else {
+    cout << "found radar data:" << endl;
+    cout << measurement_pack.raw_measurements_ << endl;
+    cout << "completely skip radar data here" <<endl;
+    return;
+
+  }
     
 
   cout<< "entering ProcessMeasurement()... is_initialized_= " << is_initialized_ << endl;
@@ -102,7 +111,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     ekf_.x_ << 1, 1, 1, 1;
 
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
-      cout<<"received radar, skip"<<endl;
+      cout<<"received radar"<<endl;
+
 
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
@@ -110,8 +120,17 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       /*
       Radar data gives polar coordinates based system, it's not sufficient to determin 
       velocity (vx, vy). but rho (range), phi (bearing) can be used to determin position (px, py)
+      Note: Cartesian coordindates for laser: x direction is in direction of motion
+       ; y is to-the-left direction
       */
-      // skip for now
+      double m_rho = measurement_pack.raw_measurements_[0];
+      double m_phi = measurement_pack.raw_measurements_[1];
+      
+		  ekf_.x_ << m_rho * cos(m_phi), - m_rho * sin(m_phi), 0, 0;
+
+		  previous_timestamp_ = measurement_pack.timestamp_;
+
+      cout<< "x_ initialized per laser input:"<< ekf_.x_<<endl;
 
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
@@ -150,7 +169,15 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
    */
   cout << "compute elapsed time: " << endl;
   //compute the time elapsed between the current and previous measurements
-	float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;	//dt - expressed in seconds
+  //dt - expressed in seconds
+	float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;	
+
+  // TODO (ME):  If two sensor measurements come in simultaneously, the time step
+  // between the first measurement and the second measurement would be (close to )
+  // zero.
+  // process the first arrived as usual; then predict another line again : 
+  // predict and update
+
 	previous_timestamp_ = measurement_pack.timestamp_;
 
   float dt_2 = dt * dt;
@@ -185,15 +212,19 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
    */
 
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+    cout<<"before radar update"<<endl;
+
     // Radar updates
-    // ekf_.UpdateEKF(measurement_pack.raw_measurements_);
+    ekf_.UpdateEKF(measurement_pack.raw_measurements_);
+
+    cout<<"after radar update"<<endl;
 
   } else {
-    cout<<"before laster update"<<endl;
+    cout<<"before laser update"<<endl;
     // Laser updates
     ekf_.Update(measurement_pack.raw_measurements_);
     
-    cout<<"after laster update"<<endl;
+    cout<<"after laser update"<<endl;
 
   }
 
