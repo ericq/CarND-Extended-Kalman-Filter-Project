@@ -73,27 +73,14 @@ FusionEKF::FusionEKF() {
 FusionEKF::~FusionEKF() {}
 
 void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
-
-  /** debugging **/
-  if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
-    cout << "found laser data:" <<endl;
-    cout << measurement_pack.raw_measurements_ << endl;
-  } 
-  else {
-    cout << "found radar data:" << endl;
-    cout << measurement_pack.raw_measurements_ << endl;
-  //  cout << "completely skip radar data here" <<endl;
-  //  return;
-
-  }
     
 
-  cout<< "entering ProcessMeasurement()... is_initialized_= " << is_initialized_ << endl;
+  //cout<< "entering ProcessMeasurement()... is_initialized_= " << is_initialized_ << endl;
   /*****************************************************************************
    *  Initialization
    ****************************************************************************/
   if (!is_initialized_) {
-    cout << "entring initialization" <<endl;
+    //cout << "entring initialization" <<endl;
     /**
     TODO:
       * Initialize the state ekf_.x_ with the first measurement.
@@ -101,12 +88,12 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       * Remember: you'll need to convert radar from polar to cartesian coordinates.
     */
     // first measurement
-    cout << "EKF: " << endl;
+    //cout << "EKF: " << endl;
     ekf_.x_ = VectorXd(4);
     ekf_.x_ << 1, 1, 1, 1;
 
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
-      cout<<"received radar"<<endl;
+      //cout<<"received radar"<<endl;
 
 
       /**
@@ -125,11 +112,11 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
 		  previous_timestamp_ = measurement_pack.timestamp_;
 
-      cout<< "x_ initialized per laser input:"<< ekf_.x_<<endl;
+      //cout<< "x_ initialized per laser input:"<< ekf_.x_<<endl;
 
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
-      cout<<"received laser"<<endl;
+      //cout<<"received laser"<<endl;
       /**
       Initialize state.
       */
@@ -138,14 +125,14 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
 		  previous_timestamp_ = measurement_pack.timestamp_;
 
-      cout<< "x_ initialized per laser input:"<< ekf_.x_<<endl;
+      //cout<< "x_ initialized per laser input:"<< ekf_.x_<<endl;
   
     }
 
     // done initializing, no need to predict or update
     is_initialized_ = true;
 
-    cout << "leaving initialization" <<endl;
+    //cout << "leaving initialization" <<endl;
 
     return;
   }
@@ -162,7 +149,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
      * Update the process noise covariance matrix.
      * Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
    */
-  cout << "compute elapsed time: " << endl;
+  //cout << "compute elapsed time: " << endl;
   //compute the time elapsed between the current and previous measurements
   //dt - expressed in seconds
 	float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;	
@@ -190,11 +177,11 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 	            dt_3/2*noise_ax, 0, dt_2*noise_ax, 0,
 	            0, dt_3/2*noise_ay, 0, dt_2*noise_ay;
 
-  cout << ekf_.Q_ << endl;
+  //cout << ekf_.Q_ << endl;
 
-  cout<<"before predict()"<<endl;
+  //cout<<"before predict()"<<endl;
   ekf_.Predict();
-  cout<<"after predict()" <<endl;
+  //cout<<"after predict()" <<endl;
 
   /*****************************************************************************
    *  Update
@@ -207,28 +194,28 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
    */
 
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
-    cout<<"before radar update"<<endl;
+    //cout<<"before radar update"<<endl;
 
     ekf_.R_ = R_radar_;
 
     // Radar updates
     ekf_.UpdateEKF(measurement_pack.raw_measurements_);
 
-    cout<<"after radar update"<<endl;
+    //cout<<"after radar update"<<endl;
 
   } else {
-    cout<<"before laser update"<<endl;
+    //cout<<"before laser update"<<endl;
 
     ekf_.R_ = R_laser_;
 
     // Laser updates
     ekf_.Update(measurement_pack.raw_measurements_);
     
-    cout<<"after laser update"<<endl;
+    //cout<<"after laser update"<<endl;
 
   }
 
   // print the output
-  cout << "x_ = " << ekf_.x_ << endl;
-  cout << "P_ = " << ekf_.P_ << endl;
+  //cout << "x_ = " << ekf_.x_ << endl;
+  //cout << "P_ = " << ekf_.P_ << endl;
 }

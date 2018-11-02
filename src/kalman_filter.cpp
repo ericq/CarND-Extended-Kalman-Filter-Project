@@ -1,5 +1,6 @@
 #include "kalman_filter.h"
 #include "tools.h"
+#include "iostream"
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -60,8 +61,8 @@ void KalmanFilter::Update(const VectorXd &z) {
 VectorXd KalmanFilter::CartesianToPolar(const VectorXd &cartesianInput) {
   VectorXd polarOutput (3);
   double px = cartesianInput(0), py = cartesianInput(1), vx = cartesianInput(2), vy = cartesianInput(3);
-  
-  polarOutput << sqrt(px*px + py*py), atan(py/px), (px*vx+py*vy)/sqrt(px*px + py*py);
+
+  polarOutput << sqrt(px*px + py*py), atan2(py,px), (px*vx+py*vy)/sqrt(px*px + py*py);
 
   return polarOutput;
 }
@@ -80,8 +81,28 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   // X_ contains px,py,vx,vy. Hj is a linearized approximity function 
   // that converts the input from Cartesian to Polar (rho,phi,rho_dot)
   // coordinates
-  VectorXd z_pred = Hj * x_;
- 	VectorXd y = z - z_pred;
+  // per the note: y = z - h(x') instead of y = z - H * x'
+
+
+  VectorXd z_pred = CartesianToPolar(x_); 
+
+  // In C++, atan2() returns values between -pi and pi. When calculating phi in 
+  // y = z - h(x) for radar measurements, the resulting angle phi in the y 
+  // vector should be adjusted so that it is between -pi and pi. The Kalman 
+  // filter is expecting small angle values between the range -pi and pi. 
+  // HINT: when working in radians, you can add 2π or substract 2π until the 
+  // angle is within the desired range.
+
+  const double pi = 3.14159;
+
+  VectorXd z_with_normalized_phi = z;
+
+  if (z(1) < -pi) 
+    z_with_normalized_phi(1) = 2 * pi + z(1);
+  else if (z(1) > pi) 
+    z_with_normalized_phi(1) = z(1) - 2 * pi;
+
+ 	VectorXd y = z_with_normalized_phi - z_pred;
  	MatrixXd Hjt = Hj.transpose();
  	MatrixXd S = Hj * P_ * Hjt + R_;
  	MatrixXd Si = S.inverse();
