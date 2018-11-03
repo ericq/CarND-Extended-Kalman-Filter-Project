@@ -93,16 +93,15 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   // HINT: when working in radians, you can add 2π or substract 2π until the 
   // angle is within the desired range.
 
-  const double pi = 3.14159;
+ 	VectorXd y = z - z_pred;
 
-  VectorXd z_with_normalized_phi = z;
+  while (y(1)>M_PI){
+    y(1) -= 2 * M_PI;
+  }
+  while (y(1)<-M_PI) {
+    y(1) += 2 * M_PI;
+  }
 
-  if (z(1) < -pi) 
-    z_with_normalized_phi(1) = 2 * pi + z(1);
-  else if (z(1) > pi) 
-    z_with_normalized_phi(1) = z(1) - 2 * pi;
-
- 	VectorXd y = z_with_normalized_phi - z_pred;
  	MatrixXd Hjt = Hj.transpose();
  	MatrixXd S = Hj * P_ * Hjt + R_;
  	MatrixXd Si = S.inverse();
